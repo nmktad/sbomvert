@@ -86,7 +86,7 @@ describe('SPDX analysis', () => {
       const result = AnalyzeSPDX(doc, 'img');
 
       expect(result.packages).toHaveLength(1);
-      expect(result.packages[0].spdxId).toBe('pkg-1');
+      expect(result.packages[0].sourceRef).toBe('pkg-1');
     });
 
     it('should classify package types from purl', () => {
@@ -238,5 +238,58 @@ describe('SPDX analysis', () => {
 
       expect(result.packages[0].hash).toBe('sha256:deadbeef');
     });
+
+    it('should dedupe packages that share the same PURL', () => {
+      const doc: SpdxDocument = {
+        ...baseDoc,
+        packages: [
+          {
+            SPDXID: 'pkg-1',
+            name: 'stdlib',
+            versionInfo: 'go1.26.4',
+            primaryPackagePurpose: 'LIBRARY',
+            licenseDeclared: 'BSD-3-Clause',
+            externalRefs: [
+              {
+                referenceCategory: 'PACKAGE-MANAGER',
+                referenceType: 'purl',
+                referenceLocator: 'pkg:golang/stdlib@1.26.4',
+              },
+            ],
+          },
+          {
+            SPDXID: 'pkg-2',
+            name: 'stdlib',
+            versionInfo: 'go1.26.4',
+            primaryPackagePurpose: 'LIBRARY',
+            licenseDeclared: 'BSD-3-Clause',
+            externalRefs: [
+              {
+                referenceCategory: 'PACKAGE-MANAGER',
+                referenceType: 'purl',
+                referenceLocator: 'pkg:golang/stdlib@1.26.4',
+              },
+            ],
+          },
+          {
+            SPDXID: 'pkg-3',
+            name: 'no-purl',
+            versionInfo: '1.0.0',
+            primaryPackagePurpose: 'LIBRARY',
+          },
+        ],
+      } as any;
+
+      const result = AnalyzeSPDX(doc, 'img');
+
+      expect(result.packages.map(pkg => pkg.name)).toEqual(['stdlib', 'no-purl']);
+      expect(result.info.totalPackages).toBe(2);
+      expect(result.info.licenseInfo).toEqual({
+        declared: 1,
+        deducted: 0,
+        unknown: 1,
+      });
+    });
+
   });
 });

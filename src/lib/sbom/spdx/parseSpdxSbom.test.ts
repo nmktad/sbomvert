@@ -316,4 +316,47 @@ describe('parseSpdxSbom', () => {
     expect(res?.packages).toHaveLength(1);
   });
 
+  it('dedupes packages that share the same PURL', () => {
+    const testSample = {
+      ...sample,
+      packages: [
+        {
+          name: 'stdlib',
+          SPDXID: 'SPDXRef-stdlib-1',
+          versionInfo: 'go1.26.4',
+          licenseDeclared: 'BSD-3-Clause',
+          externalRefs: [
+            {
+              referenceCategory: 'PACKAGE-MANAGER',
+              referenceType: 'purl',
+              referenceLocator: 'pkg:golang/stdlib@1.26.4',
+            },
+          ],
+        },
+        {
+          name: 'stdlib',
+          SPDXID: 'SPDXRef-stdlib-2',
+          versionInfo: 'go1.26.4',
+          licenseDeclared: 'BSD-3-Clause',
+          externalRefs: [
+            {
+              referenceCategory: 'PACKAGE-MANAGER',
+              referenceType: 'purl',
+              referenceLocator: 'pkg:golang/stdlib@1.26.4',
+            },
+          ],
+        },
+        {
+          name: 'no-purl',
+          SPDXID: 'SPDXRef-no-purl',
+          versionInfo: '1.0.0',
+        },
+      ],
+    };
+
+    const res = parseSpdxSbom(testSample as any, 'test-image', 'Syft');
+
+    expect(res?.packages.map(pkg => pkg.name)).toEqual(['stdlib', 'no-purl']);
+  });
+
 });

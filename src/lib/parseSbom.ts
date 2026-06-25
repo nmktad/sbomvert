@@ -1,5 +1,7 @@
 import { IPurl } from '@/models/IPurl';
 import { ISbom, ISbomPackage, IToolInfo } from '@/models/ISbom';
+import { CycloneDxBom } from '@/lib/sbom/cyclonedx/types';
+import { parseCycloneDxSbom } from '@/lib/sbom/cyclonedx/parser';
 
 export const parsePurl = (purlString?: string): IPurl | null => {
   if (!purlString) return null;
@@ -125,6 +127,24 @@ const extractPackageType = (
   return 'library';
 };
 
+const getSpdxPackagePurl = (pkg: SpdxPackage): string | undefined => {
+  return pkg.externalRefs?.find(
+    ref => ref.referenceType === 'purl' && ref.referenceCategory === 'PACKAGE-MANAGER'
+  )?.referenceLocator;
+};
+
+const getUniqueSpdxPackagesByPurl = (packages: SpdxPackage[]): SpdxPackage[] => {
+  const seenPurls = new Set<string>();
+
+  return packages.filter(pkg => {
+    const purl = getSpdxPackagePurl(pkg);
+    if (!purl) return true;
+    if (seenPurls.has(purl)) return false;
+    seenPurls.add(purl);
+    return true;
+  });
+};
+
 export const parseSpdxSbom = (
   data: SpdxDocument,
   containerName: string,
@@ -166,12 +186,10 @@ export const parseSpdxSbom = (
     };
 
     // Filter out container image and operating system packages
-    const packages: ISbomPackage[] = data.packages
+    const packages: ISbomPackage[] = getUniqueSpdxPackagesByPurl(data.packages)
       .map(pkg => {
         // Extract pURL from external refs
-        const purlRef = pkg.externalRefs?.find(
-          ref => ref.referenceType === 'purl' && ref.referenceCategory === 'PACKAGE-MANAGER'
-        );
+        const purl = getSpdxPackagePurl(pkg);
 
         // Extract CPE from external refs
         const cpeRef = pkg.externalRefs?.find(ref => ref.referenceType === 'cpe23Type');
@@ -201,10 +219,10 @@ export const parseSpdxSbom = (
           packageType: extractPackageType(
             pkg.attributionTexts,
             pkg.primaryPackagePurpose,
-            purlRef?.referenceLocator
+            purl
           ),
           hash,
-          purl: purlRef?.referenceLocator,
+          purl,
           cpe: cpeRef?.referenceLocator,
         };
       });
@@ -223,13 +241,22 @@ export const parseSpdxSbom = (
   }
 };
 
-export const parseCycloneDxSbom = (
-  _data: unknown,
-  _containerName: string,
-  _toolName: string
+export const parseSbom = (
+  data: unknown,
+  containerName: string,
+  fileName: string
 ): ISbom | null => {
-  // Placeholder for CycloneDX parsing
-  // Will be implemented when CycloneDX files are provided
-  console.warn('CycloneDX parsing not yet implemented');
+  if (!data || typeof data !== 'object') return null;
+
+  if ('spdxVersion' in data) {
+    return parseSpdxSbom(data as SpdxDocument, containerName, fileName);
+  }
+
+  if ('bomFormat' in data && data.bomFormat === 'CycloneDX') {
+    return parseCycloneDxSbom(data as CycloneDxBom, containerName, fileName);
+  }
+
   return null;
 };
+
+export { parseCycloneDxSbom };

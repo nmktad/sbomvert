@@ -1,62 +1,26 @@
 import { InferPkgTypeFromPurl } from "../purl/converter";
-import { PkgType } from "../purl/types";
+import { LicenseInfo, PackageInfo, RichFile, RichPackage, SbomInfo } from '../analyzeTypes';
 import { SpdxDocument, SpdxPackage } from "./types";
 
-export interface RichPackage {
-    raw: SpdxPackage;
-    spdxId: string;
-    name: string;
-    version: string;
-    pkgType: PkgType;
-    purl?: string;
-    cpes: string[];
-    license?: string;
-    supplier?: string;
-    originator?: string;
-    downloadLocation?: string;
-    homepage?: string;
-    description?: string;
-    sourceInfo?: string;
-    copyrightText?: string;
-    hash?: string;
-    files: RichFile[];
-}
-
-export interface RichFile {
-    fileName: string;
-    spdxId: string;
-    fileTypes?: string[];
-    sha256?: string;
-    sha1?: string;
-    layerId?: string; // extracted from comment "layerID: sha256:..."
-}
-
-export interface LicenseInfo {
-    declared: number;
-    deducted: number;
-    unknown: number;
-}
-
-export interface PackageInfo {
-  [key: string]: number;
-}
-
-export interface SbomInfo {
-    tool: string;
-    toolVersion: string;
-    vendor: string;
-    format: string;
-    created: string;
-    imageId: string;
-    spdxVersion: string;
-    documentNamespace?: string;
-    totalPackages: number;
-    licenseInfo: LicenseInfo;
-    packageInfo:PackageInfo;
-
-}
-
  const skip = new Set(['CONTAINER', 'OPERATING-SYSTEM']);
+
+const getPackagePurl = (pkg: SpdxPackage): string | undefined => {
+    return pkg.externalRefs?.find(r => r.referenceType === 'purl')?.referenceLocator;
+};
+
+const getAnalyzablePackages = (doc: SpdxDocument): SpdxPackage[] => {
+    const seenPurls = new Set<string>();
+
+    return doc.packages
+        .filter(p => !skip.has(p.primaryPackagePurpose ?? '') && (p.versionInfo || p.primaryPackagePurpose === 'APPLICATION'))
+        .filter(p => {
+            const purl = getPackagePurl(p);
+            if (!purl) return true;
+            if (seenPurls.has(purl)) return false;
+            seenPurls.add(purl);
+            return true;
+        });
+};
 
 export function cleanLicense(l?: string): string | undefined {
     if (!l || l === 'NOASSERTION' || l === 'NONE') return undefined;
@@ -73,8 +37,7 @@ export function parseCreator(creators: string[]): { tool: string; toolVersion: s
 }
 
 
-const GetLicenses = (doc: SpdxDocument) => (doc.packages
-        .filter(p => !skip.has(p.primaryPackagePurpose ?? '') && (p.versionInfo || p.primaryPackagePurpose === 'APPLICATION'))
+const GetLicenses = (doc: SpdxDocument) => (getAnalyzablePackages(doc)
         .reduce((prev: LicenseInfo, curr: SpdxPackage, _idx) => {
 
             if (cleanLicense(curr.licenseDeclared))
@@ -100,14 +63,10 @@ const GetLicenses = (doc: SpdxDocument) => (doc.packages
 
 
 const GroupPackages = (doc: SpdxDocument): PackageInfo => {
-  return doc.packages
-    .filter(p =>
-      !skip.has(p.primaryPackagePurpose ?? '') &&
-      (p.versionInfo || p.primaryPackagePurpose === 'APPLICATION')
-    )
+  return getAnalyzablePackages(doc)
     .reduce((prev: PackageInfo, curr: SpdxPackage) => {
       const ptype = InferPkgTypeFromPurl(
-        curr.externalRefs?.find(r => r.referenceType === 'purl')?.referenceLocator ?? ''
+        getPackagePurl(curr) ?? ''
       );
 
       return {
@@ -138,13 +97,13 @@ export function AnalyzeSPDX(doc: SpdxDocument, imageId: string): { info: SbomInf
     };
     
 
-    // Build file map: SPDXID → RichFile
+    // Build file map: source reference → RichFile
     const fileMap = new Map<string, RichFile>();
     for (const f of doc.files ?? []) {
         const layerMatch = f.comment?.match(/layerID:\s*(sha256:[a-f0-9]+)/i);
         fileMap.set(f.SPDXID, {
             fileName: f.fileName,
-            spdxId: f.SPDXID,
+            sourceRef: f.SPDXID,
             fileTypes: f.fileTypes,
             sha256: f.checksums?.find(c => c.algorithm === 'SHA256')?.checksumValue,
             sha1: f.checksums?.find(c => c.algorithm === 'SHA1')?.checksumValue,
@@ -164,18 +123,17 @@ export function AnalyzeSPDX(doc: SpdxDocument, imageId: string): { info: SbomInf
     }
 
    
-    const packages: RichPackage[] = doc.packages
-        .filter(p => !skip.has(p.primaryPackagePurpose ?? '') && (p.versionInfo || p.primaryPackagePurpose === 'APPLICATION'))
+    const packages: RichPackage[] = getAnalyzablePackages(doc)
         .map(p => {
-            const purl = p.externalRefs?.find(r => r.referenceType === 'purl')?.referenceLocator;
+            const purl = getPackagePurl(p);
             const cpes = p.externalRefs?.filter(r => r.referenceType === 'cpe23Type').map(r => r.referenceLocator) ?? [];
             const hash = p.checksums?.[0] ? `${p.checksums[0].algorithm.toLowerCase()}:${p.checksums[0].checksumValue}` : undefined;
             return {
                 raw: p,
-                spdxId: p.SPDXID,
+                sourceRef: p.SPDXID,
                 name: p.name,
                 version: p.versionInfo ?? 'unknown',
-                pkgType: InferPkgTypeFromPurl(p.externalRefs?.find(r => r.referenceType === 'purl')?.referenceLocator ?? ''),
+                pkgType: InferPkgTypeFromPurl(purl ?? ''),
                 purl,
                 cpes,
                 license: cleanLicense(p.licenseDeclared) ?? cleanLicense(p.licenseConcluded),
