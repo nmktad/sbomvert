@@ -11,7 +11,7 @@ export default function HomePage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className="flex-grow flex flex-col items-center justify-center text-center px-inset-lg py-16">
+      <main className="grow flex flex-col items-center justify-center text-center px-inset-lg py-16">
         <motion.h1
           className="text-display-lg font-extrabold mb-4 text-foreground"
           initial={{ opacity: 0, y: 20 }}
