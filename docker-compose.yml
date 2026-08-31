@@ -24,6 +24,7 @@ services:
     environment:
       NODE_ENV: development
       REDIS_HOST: redis
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
 
     depends_on:
       - redis

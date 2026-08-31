@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Navbar } from '@/components/navbar/Navbar';
 import Sidebar from '@/components/layout/Sidebar';
-
+import { Toaster } from '@/components/ui/toast';
 
 export const metadata: Metadata = {
   title: 'SBOMVert',
@@ -38,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </a>
           </div>
         </footer>
+        <Toaster />
       </body>
     </html>
   );
