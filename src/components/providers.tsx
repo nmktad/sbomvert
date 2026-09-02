@@ -23,6 +23,7 @@ export function Providers({ children }: { children: ReactNode }) {
                 authClient={authClient}
                 redirectTo="/settings/account"
                 socialProviders={["github"]}
+                emailAndPassword={{ enabled: false }}
                 navigate={({ to, replace }) =>
                     replace ? router.replace(to) : router.push(to)
                 }

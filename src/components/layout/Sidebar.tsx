@@ -3,6 +3,7 @@ import { useSession } from '@better-auth-ui/react';
 import { useRouter } from 'next/navigation';
 import { Shield, ShieldX, Scale, Home, FileChartColumnIncreasing, Upload, ScanText, LogIn } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
+import { UserButton } from '@/components/auth/user/user-button';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 
@@ -45,9 +46,7 @@ export default function Sidebar() {
 
       <div className="mt-auto p-2">
         {session ? (
-          <div className="rounded-md border border-border px-5 py-3 text-body-sm font-medium text-foreground-muted">
-            Logged in
-          </div>
+            <UserButton />
         ) : (
           <div className="hover:bg-border transition rounded-md p-2">
             <button
