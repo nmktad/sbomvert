@@ -1,11 +1,14 @@
 'use client';
+import { useSession } from '@better-auth-ui/react';
 import { useRouter } from 'next/navigation';
-import { Shield, ShieldX, Scale, Home, FileChartColumnIncreasing, Upload,ScanText } from 'lucide-react';
+import { Shield, ShieldX, Scale, Home, FileChartColumnIncreasing, Upload, ScanText, LogIn } from 'lucide-react';
+import { authClient } from '@/lib/auth-client';
 import { FEATURE_FLAGS } from '@/lib/featureFlags';
 
 
 export default function Sidebar() {
   const router = useRouter();
+  const { data: session } = useSession(authClient);
 
   const navItems = [
     { icon: Home,                    label: 'Home',            href: '/' },
@@ -39,6 +42,24 @@ export default function Sidebar() {
           );
         })}
       </nav>
+
+      <div className="mt-auto p-2">
+        {session ? (
+          <div className="rounded-md border border-border px-5 py-3 text-body-sm font-medium text-foreground-muted">
+            Logged in
+          </div>
+        ) : (
+          <div className="hover:bg-border transition rounded-md p-2">
+            <button
+              onClick={() => router.push('/auth/sign-in')}
+              className="flex items-center gap-3 text-left px-3 py-2 w-full text-foreground"
+            >
+              <LogIn className="w-5 h-5 text-foreground-muted" aria-hidden />
+              <span className="text-body-sm font-medium">Login</span>
+            </button>
+          </div>
+        )}
+      </div>
     </aside>
   );
 }
