@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { AdditionalField } from "./additional-field"
 import { PasswordStrengthMeter } from "./password-strength-meter"
 import { ProviderButtons, type SocialLayout } from "./provider-buttons"
 
@@ -299,19 +298,6 @@ export function SignUp({
                   <FieldError>{fieldErrors.email}</FieldError>
                 </Field>
 
-                {additionalFields?.map(
-                  (field) =>
-                    field.signUp === "above" && (
-                      <AdditionalField
-                        key={field.name}
-                        name={field.name}
-                        field={field}
-                        isPending={isPending}
-                        optionalLabel={localization.auth.optional}
-                      />
-                    )
-                )}
-
                 <Field data-invalid={!!fieldErrors.password}>
                   <FieldLabel htmlFor="password">
                     {localization.auth.password}
@@ -465,20 +451,6 @@ export function SignUp({
 
                     <FieldError>{fieldErrors.confirmPassword}</FieldError>
                   </Field>
-                )}
-
-                {additionalFields?.map(
-                  (field) =>
-                    field.signUp &&
-                    field.signUp !== "above" && (
-                      <AdditionalField
-                        key={field.name}
-                        name={field.name}
-                        field={field}
-                        isPending={isPending}
-                        optionalLabel={localization.auth.optional}
-                      />
-                    )
                 )}
 
                 {Captcha && (

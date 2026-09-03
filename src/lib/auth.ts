@@ -3,6 +3,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/db"; // your drizzle instance
 import * as schemas from "@/db/schema"; // your drizzle instance
 import { magicLink } from "better-auth/plugins";
+import { apiKey } from "@better-auth/api-key"
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -18,6 +19,7 @@ export const auth = betterAuth({
         }, 
     },
     plugins: [
+        apiKey(),
         magicLink({ 
             sendMagicLink: async ({ email, token, url, metadata }, ctx) => { 
                 //TODO: send email to user

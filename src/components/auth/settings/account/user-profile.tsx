@@ -1,7 +1,6 @@
 "use client"
 
 import {
-  type AdditionalFieldValue,
   parseAdditionalFieldValue
 } from "@better-auth-ui/core"
 import type { UsernameAuthClient } from "@better-auth-ui/core/plugins/username"
@@ -16,7 +15,6 @@ import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"
-import { AdditionalField } from "../../additional-field"
 import { ChangeAvatar } from "./change-avatar"
 
 export type UserProfileProps = {
@@ -127,47 +125,6 @@ export function UserProfile({ className }: UserProfileProps) {
               <FieldError>{fieldErrors.name}</FieldError>
             </Field>
 
-            {additionalFields?.map((field) => {
-              if (field.profile === false) return null
-
-              if (!session) {
-                if (field.inputType === "hidden") {
-                  return null
-                }
-
-                return (
-                  <Skeleton key={field.name}>
-                    <Input className="invisible" />
-                  </Skeleton>
-                )
-              }
-
-              const value = (session.user as Record<string, unknown>)[
-                field.name
-              ]
-
-              // Re-mount when the session value loads so the field's
-              // uncontrolled `defaultValue` reflects the latest data.
-              const key = `${field.name}:${
-                value instanceof Date
-                  ? value.toISOString()
-                  : String(value ?? "")
-              }`
-
-              return (
-                <AdditionalField
-                  key={key}
-                  name={field.name}
-                  field={{
-                    ...field,
-                    // `defaultValue` is sign-up-only; on the profile we
-                    // always seed from the session.
-                    defaultValue: value as AdditionalFieldValue | null
-                  }}
-                  isPending={isPending}
-                />
-              )
-            })}
           </CardContent>
 
           <CardFooter>
