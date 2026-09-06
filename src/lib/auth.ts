@@ -19,7 +19,20 @@ export const auth = betterAuth({
         }, 
     },
     plugins: [
-        apiKey(),
+        apiKey({
+            enableSessionForAPIKeys: true,
+            rateLimit: {
+                enabled: true,
+                timeWindow: 1000 * 60 * 60, // 1 day
+                maxRequests: 50, // 10 requests per day
+            },
+            keyExpiration: {
+                minExpiresIn: 7,
+                maxExpiresIn: 90,
+                defaultExpiresIn: null,
+                disableCustomExpiresTime: false
+            }
+        }),
         magicLink({ 
             sendMagicLink: async ({ email, token, url, metadata }, ctx) => { 
                 //TODO: send email to user
