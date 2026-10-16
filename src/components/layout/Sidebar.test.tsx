@@ -46,6 +46,10 @@ describe('Sidebar', () => {
     process.env = originalEnv;
   });
 
+  afterAll(() => {
+    process.env = originalEnv;
+  });
+
   it('renders all navigation items', () => {
     render(<Sidebar />);
 
